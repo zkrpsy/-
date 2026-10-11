@@ -21,6 +21,8 @@
   }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { height:100%; }
+  body { transition: filter .9s ease; }
+  body.dim { filter: brightness(0.35); }
   body {
     background: var(--bg); color: var(--fg);
     font-family: -apple-system,"PingFang SC","Microsoft YaHei","Segoe UI",Roboto,sans-serif;
@@ -160,7 +162,7 @@
     <header class="topbar">
       <span class="brand">桌摆仪表盘</span>
       <div class="sem">
-        <span class="sem-txt" id="semText">第 0 / 22 周</span>
+        <span class="sem-txt" id="semText">第 0 / 20 周</span>
         <span class="sem-bar"><span class="sem-fill" id="semFill"></span></span>
       </div>
     </header>
@@ -322,7 +324,7 @@
     return '';
   }
   function rangeWeeks(a,b){ var arr=[]; for(var i=a;i<=b;i++) arr.push(i); return arr; }
-  var FULL_WEEKS = rangeWeeks(1,22);
+  var FULL_WEEKS = rangeWeeks(1,20);
   var SEMESTER_START = new Date(2026, 7, 31); // 2026-08-31(周一) 为第1周
   function currentWeek(){
     var now = new Date();
@@ -927,11 +929,18 @@
   tryCloudTip();
   setInterval(fetchWeather, 30*60*1000);
 
+  function applyBrightness(){
+    var h = new Date().getHours();
+    var dim = (h>=23 || h<7);
+    document.body.classList.toggle('dim', dim);
+  }
+  applyBrightness();
   applyTheme(0);
   var lastDayKey = fmtDate(new Date());
   renderAll();
   setInterval(function(){
     renderTime();
+    applyBrightness();
     var k = fmtDate(new Date());
     if(k !== lastDayKey){ lastDayKey = k; renderAll(); tryCloudTip(); }
   }, 250);
