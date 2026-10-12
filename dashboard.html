@@ -65,12 +65,21 @@
     word-break:break-word; overflow-wrap:anywhere;
   }
   .wd.today .note { color:#FFE0A3; }
+  .wd .bd {
+    font-size:clamp(11px,2.8vmin,18px); color:#FFB36B; margin-top:3px;
+    max-width:100%; padding:0 3px; line-height:1.2; text-align:center;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+    word-break:break-word; overflow-wrap:anywhere;
+  }
+  .wd.today .bd { color:#FFD9A8; }
 
   /* 日历：点周历往下拉开整月，遮挡时间/天气；提醒显示在当天日期下 */
   .left { position:relative; }
   .calwrap { display:flex; flex-direction:column; gap:1.2vh; cursor:pointer; }
   .calwrap.mode-month { cursor:default; }
-  .calbar { display:flex; align-items:center; justify-content:space-between; }
+  .calbar { display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+  .calwrap.mode-month .calbar { justify-content:space-between; }
+  .calwrap.mode-week .cal-title { display:none; }
   .cal-actions { display:flex; align-items:center; gap:10px; }
   .cal-btn { width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:rgba(127,127,127,.16); color:var(--fg); font-size:16px; line-height:1; cursor:pointer; transition:background .2s ease; display:inline-flex; align-items:center; justify-content:center; }
   .cal-btn:active { background:rgba(127,127,127,.3); }
@@ -215,7 +224,7 @@
         <div class="birthday" id="birthdayBar"></div>
         <div class="calwrap mode-week" id="calwrap">
           <div class="calbar">
-            <div class="cal-title" id="calTitle">本周</div>
+            <div class="cal-title" id="calTitle"></div>
             <div class="cal-actions">
               <button class="cal-btn" id="calPrev" hidden aria-label="上一月">‹</button>
               <button class="cal-btn" id="calToggle" aria-label="展开/收起整月">⬍</button>
@@ -503,7 +512,9 @@
       var dt = new Date(monday); dt.setDate(monday.getDate()+i);
       var today = dt.toDateString()===d.toDateString();
       var note = getNote(fmtDate(dt));
-      html += '<div class="wd'+(today?' today':'')+'"><span class="wl">'+dayNames[i]+'</span><span class="wn">'+dt.getDate()+'</span>'+(note?'<span class="note">'+esc(note)+'</span>':'')+'</div>';
+      var bds = birthdaysOn(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
+      var bdHtml = bds.length ? '<span class="bd">🎂'+esc(bds.map(function(b){return b.name;}).join('、'))+'</span>' : '';
+      html += '<div class="wd'+(today?' today':'')+'"><span class="wl">'+dayNames[i]+'</span><span class="wn">'+dt.getDate()+'</span>'+(note?'<span class="note">'+esc(note)+'</span>':'')+bdHtml+'</div>';
     }
     $('week').innerHTML = html;
   }
@@ -842,7 +853,7 @@
       $('calPrev').hidden=false; $('calNext').hidden=false;
     } else {
       wrap.classList.add('mode-week'); wrap.classList.remove('mode-month');
-      $('calTitle').textContent='本周';
+      $('calTitle').textContent='';
       $('calToggle').textContent='⬍';
       $('calPrev').hidden=true; $('calNext').hidden=true;
     }
