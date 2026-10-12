@@ -31,7 +31,7 @@
   }
 
   .dash { display:flex; flex-direction:column; width:100%; height:100%; }
-  .topbar { display:flex; align-items:center; justify-content:space-between; padding:2vh 4vw 0; }
+  .topbar { display:flex; align-items:center; justify-content:flex-end; padding:2vh 4vw 0; }
   .brand { font-size:clamp(13px,3.6vmin,26px); letter-spacing:.22em; color:var(--dim); }
   .sem { display:flex; align-items:center; gap:12px; }
   .sem-txt { font-size:clamp(12px,3.2vmin,22px); color:var(--dim); letter-spacing:.08em; font-variant-numeric:tabular-nums; }
@@ -148,6 +148,20 @@
   .qrwrap { display:flex; justify-content:center; margin:8px 0 14px; }
   .toast { position:fixed; left:50%; bottom:14vh; transform:translateX(-50%); background:var(--acc); color:#fff; padding:10px 22px; border-radius:22px; font-size:14px; opacity:0; transition:opacity .3s ease; z-index:70; pointer-events:none; }
   .toast.show { opacity:1; }
+  .week { cursor:pointer; }
+  .cal-box { width:min(620px,92vw); max-height:84vh; display:flex; flex-direction:column; margin:auto; background:var(--bg); border:1px solid var(--line); border-radius:18px; padding:16px 18px; }
+  .cal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .cal-title { font-size:clamp(16px,4vmin,24px); font-weight:600; font-variant-numeric:tabular-nums; }
+  .cal-nav { display:flex; gap:10px; }
+  .cal-nav button { width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:rgba(127,127,127,.16); color:var(--fg); font-size:18px; line-height:1; cursor:pointer; }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; overflow-y:auto; }
+  .cal-dow { text-align:center; font-size:clamp(11px,2.4vmin,14px); color:var(--dim); padding-bottom:4px; }
+  .cd { position:relative; min-height:clamp(50px,8vh,78px); border-radius:10px; background:rgba(255,255,255,.03); padding:6px 4px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
+  .cd.empty { background:transparent; }
+  .cd.today { outline:2px solid var(--acc); background:rgba(55,138,221,.14); }
+  .cd-n { font-size:clamp(14px,3vmin,19px); font-variant-numeric:tabular-nums; }
+  .cd-l { font-size:clamp(10px,2.1vmin,12px); color:var(--dim); margin-top:3px; text-align:center; line-height:1.2; }
+  .cd-bd { position:absolute; top:3px; right:5px; font-size:13px; }
   .birthday { display:none; align-items:center; gap:10px; font-size:clamp(14px,4vmin,30px); font-weight:500; padding:1.2vh 1.6vw; border-radius:12px; background:rgba(239,159,39,.16); border:1px solid rgba(239,159,39,.4); color:#FAC775; }
   .birthday.show { display:flex; }
   .weather { flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:16px; padding:0 4px; }
@@ -160,7 +174,6 @@
 <body data-page-node-id="2KtoGZdLf1JWu2VBm0RdEt">
   <div class="dash">
     <header class="topbar">
-      <span class="brand">桌摆仪表盘</span>
       <div class="sem">
         <span class="sem-txt" id="semText">第 0 / 20 周</span>
         <span class="sem-bar"><span class="sem-fill" id="semFill"></span></span>
@@ -282,6 +295,20 @@
         <button class="dbtn" id="btnBatchBirthdayOk">导入</button>
         <button class="dbtn" id="batchBirthdayClose">取消</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal" id="calModal">
+    <div class="cal-box" id="calBox">
+      <div class="cal-head">
+        <div class="cal-title" id="calTitle">—</div>
+        <div class="cal-nav">
+          <button id="calPrev" aria-label="上一月">‹</button>
+          <button id="calClose" aria-label="关闭">×</button>
+          <button id="calNext" aria-label="下一月">›</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
     </div>
   </div>
 
@@ -742,6 +769,39 @@
     });
     return out;
   }
+  function birthdaysOn(y,mo,day){
+    var out=[];
+    loadBirthdays().forEach(function(b){
+      if(b.type==='lunar'){ try{ var r=solarlunar.lunar2solar(y,b.month,b.day); if(r&&r.cMonth===mo&&r.cDay===day) out.push(b); }catch(e){} }
+      else if(b.month===mo&&b.day===day) out.push(b);
+    });
+    return out;
+  }
+  var calY, calM;
+  function renderMonthCalendar(y,m){
+    calY=y; calM=m;
+    $('calTitle').textContent = y+'年'+(m+1)+'月';
+    var dows=['日','一','二','三','四','五','六'];
+    var head=dows.map(function(x){ return '<div class="cal-dow">'+x+'</div>'; }).join('');
+    var first=new Date(y,m,1).getDay();
+    var days=new Date(y,m+1,0).getDate();
+    var html='';
+    for(var i=0;i<first;i++){ html+='<div class="cd empty"></div>'; }
+    var t=new Date();
+    for(var dn=1; dn<=days; dn++){
+      var dt=new Date(y,m,dn);
+      var lun=solarlunar.solar2lunar(y,m+1,dn);
+      var fest=getFestival(fmtDate(dt));
+      var bds=birthdaysOn(y,m+1,dn);
+      var isToday=dt.toDateString()===t.toDateString();
+      var sub=fest || (lun.dayCn==='初一' ? lun.monthCn+'月' : lun.dayCn);
+      var bd=bds.length ? '<span class="cd-bd">🎂</span>' : '';
+      html+='<div class="cd'+(isToday?' today':'')+'"><span class="cd-n">'+dn+'</span><span class="cd-l">'+sub+'</span>'+bd+'</div>';
+    }
+    $('calGrid').innerHTML=head+html;
+  }
+  function openCal(){ var d=new Date(); calY=d.getFullYear(); calM=d.getMonth(); renderMonthCalendar(calY,calM); $('calModal').classList.add('show'); }
+  function closeCal(){ $('calModal').classList.remove('show'); }
   function renderBirthday(){
     var list = birthdaysToday();
     var el = $('birthdayBar');
@@ -936,6 +996,12 @@
   }
   applyBrightness();
   applyTheme(0);
+  $('week').addEventListener('click', function(e){ e.stopPropagation(); openCal(); });
+  $('calBox').addEventListener('click', function(e){ e.stopPropagation(); });
+  $('calPrev').addEventListener('click', function(){ calM--; if(calM<0){ calM=11; calY--; } renderMonthCalendar(calY,calM); });
+  $('calNext').addEventListener('click', function(){ calM++; if(calM>11){ calM=0; calY++; } renderMonthCalendar(calY,calM); });
+  $('calClose').addEventListener('click', closeCal);
+  $('calModal').addEventListener('click', function(e){ if(e.target===this) closeCal(); });
   var lastDayKey = fmtDate(new Date());
   renderAll();
   setInterval(function(){
