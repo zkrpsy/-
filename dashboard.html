@@ -65,17 +65,16 @@
   }
   .wd.today .note { color:rgba(255,255,255,.82); }
 
-  /* 日历切换（本周/本月 丝滑内联） */
-  .calwrap { display:flex; flex-direction:column; gap:1.2vh; }
-  .cal-toggle { display:flex; align-items:center; justify-content:space-between; }
-  .cal-seg { display:flex; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px; gap:4px; }
-  .seg-btn { border:none; background:transparent; color:var(--dim); font-family:inherit; font-size:clamp(13px,3.2vmin,22px); padding:0.5vh 2.6vw; border-radius:999px; cursor:pointer; transition:all .28s ease; letter-spacing:.05em; }
-  .seg-btn.active { background:var(--acc); color:#fff; font-weight:600; }
-  .cal-nav { display:none; align-items:center; gap:10px; }
-  .calwrap.mode-month .cal-nav { display:flex; }
-  .cal-nav button { width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:rgba(127,127,127,.16); color:var(--fg); font-size:17px; line-height:1; cursor:pointer; transition:background .2s ease; }
-  .cal-nav button:active { background:rgba(127,127,127,.3); }
-  .cal-title { font-size:clamp(15px,3.6vmin,24px); font-weight:600; font-variant-numeric:tabular-nums; min-width:8.5em; text-align:center; }
+  /* 日历：点周历往下拉开整月，遮挡时间/天气；提醒显示在当天日期下 */
+  .left { position:relative; }
+  .calwrap { display:flex; flex-direction:column; gap:1.2vh; cursor:pointer; }
+  .calwrap.mode-month { cursor:default; }
+  .calbar { display:flex; align-items:center; justify-content:space-between; }
+  .cal-actions { display:flex; align-items:center; gap:10px; }
+  .cal-btn { width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:rgba(127,127,127,.16); color:var(--fg); font-size:16px; line-height:1; cursor:pointer; transition:background .2s ease; display:inline-flex; align-items:center; justify-content:center; }
+  .cal-btn:active { background:rgba(127,127,127,.3); }
+  .cal-btn[hidden] { display:none; }
+  .cal-title { font-size:clamp(15px,3.6vmin,24px); font-weight:600; font-variant-numeric:tabular-nums; }
   .cal-view { position:relative; }
   .week, .month { display:none; }
   .calwrap.mode-week .week { display:flex; animation:calIn .4s cubic-bezier(.22,.61,.36,1); }
@@ -88,18 +87,14 @@
   .month .cd-n { font-size:clamp(14px,3vmin,19px); font-variant-numeric:tabular-nums; }
   .month .cd-l { font-size:clamp(10px,2.1vmin,12px); color:var(--dim); margin-top:3px; text-align:center; line-height:1.2; }
   .month .cd-bd { position:absolute; top:3px; right:5px; font-size:13px; }
+  .month .cd-note { font-size:clamp(10px,2.1vmin,13px); color:#FAC775; margin-top:3px; text-align:center; line-height:1.25; max-width:100%; padding:0 2px; word-break:break-all; overflow-wrap:anywhere; }
 
-  /* 日历下方提醒 */
-  .reminders { display:flex; flex-direction:column; gap:.6vh; }
-  .rem-title { font-size:clamp(12px,3vmin,20px); color:var(--dim); letter-spacing:.16em; display:flex; align-items:center; gap:8px; }
-  .rem-title::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--acc); display:inline-block; }
-  .rem-list { display:flex; flex-direction:column; gap:.8vh; max-height:15vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
-  .rem-item { display:flex; align-items:center; gap:12px; padding:.6vh 0; border-bottom:1px solid var(--line); }
-  .rem-item:last-child { border-bottom:none; }
-  .rem-date { flex:none; color:var(--acc); font-variant-numeric:tabular-nums; font-size:clamp(13px,3.2vmin,22px); min-width:3.4em; }
-  .rem-text { flex:1; font-size:clamp(13px,3.2vmin,22px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .rem-item.rem-near .rem-date { color:#FAC775; font-weight:600; }
-  .rem-empty { color:var(--dim); font-size:clamp(12px,3vmin,20px); padding:.4vh 0; }
+  /* 展开整月：隐藏时间/天气，日历占满 */
+  .left.expanded .weather,
+  .left.expanded .timeblock { display:none; }
+  .left.expanded .calwrap { flex:1 1 auto; min-height:0; }
+  .left.expanded .cal-view { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+  .left.expanded .month { flex:1 1 auto; min-height:0; grid-auto-rows:minmax(0,1fr); overflow-y:auto; }
 
   /* 时间 */
   .time { display:flex; align-items:baseline; justify-content:center; line-height:1; font-variant-numeric:tabular-nums; }
@@ -215,28 +210,21 @@
       </div>
     </header>
     <div class="main">
-      <div class="left">
+      <div class="left" id="leftCol">
         <div class="birthday" id="birthdayBar"></div>
         <div class="calwrap mode-week" id="calwrap">
-          <div class="cal-toggle">
-            <div class="cal-seg">
-              <button class="seg-btn active" id="segWeek">本周</button>
-              <button class="seg-btn" id="segMonth">本月</button>
-            </div>
-            <div class="cal-nav" id="calNav">
-              <button id="calPrev" aria-label="上一月">‹</button>
-              <span class="cal-title" id="calTitle"></span>
-              <button id="calNext" aria-label="下一月">›</button>
+          <div class="calbar">
+            <div class="cal-title" id="calTitle">本周</div>
+            <div class="cal-actions">
+              <button class="cal-btn" id="calPrev" hidden aria-label="上一月">‹</button>
+              <button class="cal-btn" id="calToggle" aria-label="展开/收起整月">⬍</button>
+              <button class="cal-btn" id="calNext" hidden aria-label="下一月">›</button>
             </div>
           </div>
           <div class="cal-view">
             <div class="week" id="week"></div>
             <div class="month" id="monthCal"></div>
           </div>
-        </div>
-        <div class="reminders">
-          <div class="rem-title">提醒</div>
-          <div class="rem-list" id="remList"></div>
         </div>
         <div class="weather" id="weather">
           <span class="w-icon" id="wIcon">—</span>
@@ -580,7 +568,7 @@
     var st = $('semText'); if(st) st.textContent = '第 '+wk+' / '+total+' 周';
     var fill = $('semFill'); if(fill){ var pct = Math.max(0, Math.min(100, Math.round(wk/total*100))); fill.style.width = pct+'%'; }
   }
-  function renderAll(){ renderWeek(); renderTime(); renderCourses(); renderTodos(); renderBirthday(); renderSemester(); renderTip(); renderReminders(); }
+  function renderAll(){ renderWeek(); renderTime(); renderCourses(); renderTodos(); renderBirthday(); renderSemester(); renderTip(); }
 
   // ---- 待办勾选（主界面） ----
   $('todos').addEventListener('click', function(e){
@@ -837,32 +825,26 @@
       var isToday=dt.toDateString()===t.toDateString();
       var sub=fest || (lun.dayCn==='初一' ? lun.monthCn+'月' : lun.dayCn);
       var bd=bds.length ? '<span class="cd-bd">🎂</span>' : '';
-      html+='<div class="cd'+(isToday?' today':'')+'"><span class="cd-n">'+dn+'</span><span class="cd-l">'+sub+'</span>'+bd+'</div>';
+      var note=getNote(fmtDate(dt));
+      html+='<div class="cd'+(isToday?' today':'')+'"><span class="cd-n">'+dn+'</span><span class="cd-l">'+sub+'</span>'+bd+(note?'<span class="cd-note">'+esc(note)+'</span>':'')+'</div>';
     }
     $('monthCal').innerHTML=head+html;
   }
-  function setCalMode(mode){
+  function toggleCal(){
+    var left=$('leftCol');
     var wrap=$('calwrap');
-    if(mode==='month'){
+    var expanded = left.classList.toggle('expanded');
+    if(expanded){
       if(!$('monthCal').children.length){ var d=new Date(); calY=d.getFullYear(); calM=d.getMonth(); renderMonthCalendar(calY,calM); }
       wrap.classList.add('mode-month'); wrap.classList.remove('mode-week');
-      $('segMonth').classList.add('active'); $('segWeek').classList.remove('active');
+      $('calToggle').textContent='✕';
+      $('calPrev').hidden=false; $('calNext').hidden=false;
     } else {
       wrap.classList.add('mode-week'); wrap.classList.remove('mode-month');
-      $('segWeek').classList.add('active'); $('segMonth').classList.remove('active');
+      $('calTitle').textContent='本周';
+      $('calToggle').textContent='⬍';
+      $('calPrev').hidden=true; $('calNext').hidden=true;
     }
-  }
-  function renderReminders(){
-    var notes = loadNotes().slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; });
-    var today = fmtDate(new Date());
-    var upcoming = notes.filter(function(n){ return n.date >= today; }).slice(0,6);
-    var el = $('remList');
-    if(upcoming.length===0){ el.innerHTML = '<div class="rem-empty">📭 近期没有日历提醒</div>'; return; }
-    el.innerHTML = upcoming.map(function(n){
-      var p = n.date.split('-'); var ds = p[1]+'/'+p[2];
-      var near = (n.date===today);
-      return '<div class="rem-item'+(near?' rem-near':'')+'"><span class="rem-date">'+ds+'</span><span class="rem-text">'+esc(n.text)+'</span></div>';
-    }).join('');
   }
   function renderBirthday(){
     var list = birthdaysToday();
@@ -1058,10 +1040,10 @@
   }
   applyBrightness();
   applyTheme(0);
-  $('segWeek').addEventListener('click', function(){ setCalMode('week'); });
-  $('segMonth').addEventListener('click', function(){ setCalMode('month'); });
-  $('calPrev').addEventListener('click', function(){ calM--; if(calM<0){ calM=11; calY--; } renderMonthCalendar(calY,calM); });
-  $('calNext').addEventListener('click', function(){ calM++; if(calM>11){ calM=0; calY++; } renderMonthCalendar(calY,calM); });
+  $('calToggle').addEventListener('click', function(e){ e.stopPropagation(); toggleCal(); });
+  $('week').addEventListener('click', function(e){ e.stopPropagation(); if(!$('leftCol').classList.contains('expanded')) toggleCal(); });
+  $('calPrev').addEventListener('click', function(e){ e.stopPropagation(); calM--; if(calM<0){ calM=11; calY--; } renderMonthCalendar(calY,calM); });
+  $('calNext').addEventListener('click', function(e){ e.stopPropagation(); calM++; if(calM>11){ calM=0; calY++; } renderMonthCalendar(calY,calM); });
   var lastDayKey = fmtDate(new Date());
   renderAll();
   setInterval(function(){
