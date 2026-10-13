@@ -788,6 +788,12 @@
     if($('bar').classList.contains('show')) hideMenu(); else showMenu();
   });
   document.addEventListener('dblclick', toggleFullscreen);
+  document.addEventListener('click', function(e){
+    if($('editor').classList.contains('show')) return;
+    if(!$('leftCol').classList.contains('expanded')) return;
+    if(e.target.closest('#calwrap')) return;
+    toggleCal();
+  });
 
   function toast(msg){
     var t = $('toast'); t.textContent = msg; t.classList.add('show');
