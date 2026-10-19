@@ -463,6 +463,18 @@
     }
     sSet('todo107Added', '1');
   }
+  // 一次性追加：每日任务「给许嘉杰发信息」（保留已有待办与打卡历史）
+  if (sGet('todoXuAdded') !== '1') {
+    var xlist = loadTodos(), hasXu = false;
+    for (var xi=0; xi<xlist.length; xi++){
+      if(xlist[xi].text==='给许嘉杰发信息' && xlist[xi].repeat==='daily'){ hasXu = true; break; }
+    }
+    if(!hasXu){
+      xlist.push({ id: uid(), text:'给许嘉杰发信息', repeat:'daily', days:[], date:'', doneDate:'' });
+      saveTodos(xlist);
+    }
+    sSet('todoXuAdded', '1');
+  }
   if (sGet('calNotesVer') !== '2') {
     saveNotes([]);
     sSet('calNotesVer', '2');
